@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/hermeznetwork/hermez-node/api/apitypes"
 	"github.com/hermeznetwork/hermez-node/common"
 	"github.com/hermeznetwork/hermez-node/db"
 	"github.com/hermeznetwork/tracerr"
@@ -43,7 +44,7 @@ func (l2db *L2DB) GetAccountCreationAuthAPI(addr ethCommon.Address) (*AccountCre
 }
 
 // AddTxAPI inserts a tx to the pool
-func (l2db *L2DB) AddTxAPI(tx *PoolL2TxWrite) error {
+func (l2db *L2DB) AddTxAPI(tx *apitypes.PoolL2Tx) error {
 	cancel, err := l2db.apiConnCon.Acquire()
 	defer cancel()
 	if err != nil {

@@ -19,6 +19,7 @@ import (
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	swagger "github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
+	"github.com/hermeznetwork/hermez-node/api/apitypes"
 	"github.com/hermeznetwork/hermez-node/api/stateapiupdater"
 	"github.com/hermeznetwork/hermez-node/common"
 	"github.com/hermeznetwork/hermez-node/db"
@@ -177,7 +178,7 @@ type testCommon struct {
 	accounts         []testAccount
 	txs              []testTx
 	exits            []testExit
-	poolTxsToSend    []testPoolTxSend
+	poolTxsToSend    []apitypes.PoolL2Tx
 	poolTxsToReceive []testPoolTxReceive
 	auths            []testAuth
 	router           *swagger.Router

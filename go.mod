@@ -18,8 +18,9 @@ require (
 	github.com/jmoiron/sqlx v1.2.1-0.20200615141059-0794cb1f47ee
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.8.0
-	github.com/libp2p/go-libp2p v0.14.0 // indirect
-	github.com/libp2p/go-libp2p-pubsub v0.4.1 // indirect
+	github.com/libp2p/go-libp2p v0.14.0
+	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/mitchellh/copystructure v1.0.0

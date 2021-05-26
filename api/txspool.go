@@ -6,36 +6,33 @@ import (
 	"math/big"
 	"net/http"
 
-	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/hermeznetwork/hermez-node/api/apitypes"
 	"github.com/hermeznetwork/hermez-node/common"
 	"github.com/hermeznetwork/hermez-node/db/l2db"
 	"github.com/hermeznetwork/tracerr"
-	"github.com/iden3/go-iden3-crypto/babyjub"
 )
 
 func (a *API) postPoolTx(c *gin.Context) {
 	// Parse body
-	var receivedTx receivedPoolTx
+	var receivedTx apitypes.PoolL2Tx
 	if err := c.ShouldBindJSON(&receivedTx); err != nil {
 		retBadReq(err, c)
 		return
 	}
 	// Transform from received to insert format and validate
-	writeTx := receivedTx.toPoolL2TxWrite()
-	if err := a.verifyPoolL2TxWrite(writeTx); err != nil {
+	if err := a.verifyPoolL2TxWrite(&receivedTx); err != nil {
 		retBadReq(err, c)
 		return
 	}
-	writeTx.ClientIP = c.ClientIP()
+	receivedTx.ClientIP = c.ClientIP()
 	// Insert to DB
-	if err := a.l2.AddTxAPI(writeTx); err != nil {
+	if err := a.l2.AddTxAPI(&receivedTx); err != nil {
 		retSQLErr(err, c)
 		return
 	}
 	// Return TxID
-	c.JSON(http.StatusOK, writeTx.TxID.String())
+	c.JSON(http.StatusOK, receivedTx.TxID.String())
 }
 
 func (a *API) getPoolTx(c *gin.Context) {
@@ -113,57 +110,7 @@ func (a *API) getPoolTxs(c *gin.Context) {
 	})
 }
 
-type receivedPoolTx struct {
-	TxID        common.TxID             `json:"id" binding:"required"`
-	Type        common.TxType           `json:"type" binding:"required"`
-	TokenID     common.TokenID          `json:"tokenId"`
-	FromIdx     apitypes.StrHezIdx      `json:"fromAccountIndex" binding:"required"`
-	ToIdx       *apitypes.StrHezIdx     `json:"toAccountIndex"`
-	ToEthAddr   *apitypes.StrHezEthAddr `json:"toHezEthereumAddress"`
-	ToBJJ       *apitypes.StrHezBJJ     `json:"toBjj"`
-	Amount      apitypes.StrBigInt      `json:"amount" binding:"required"`
-	Fee         common.FeeSelector      `json:"fee"`
-	Nonce       common.Nonce            `json:"nonce"`
-	Signature   babyjub.SignatureComp   `json:"signature" binding:"required"`
-	RqFromIdx   *apitypes.StrHezIdx     `json:"requestFromAccountIndex"`
-	RqToIdx     *apitypes.StrHezIdx     `json:"requestToAccountIndex"`
-	RqToEthAddr *apitypes.StrHezEthAddr `json:"requestToHezEthereumAddress"`
-	RqToBJJ     *apitypes.StrHezBJJ     `json:"requestToBjj"`
-	RqTokenID   *common.TokenID         `json:"requestTokenId"`
-	RqAmount    *apitypes.StrBigInt     `json:"requestAmount"`
-	RqFee       *common.FeeSelector     `json:"requestFee"`
-	RqNonce     *common.Nonce           `json:"requestNonce"`
-}
-
-func (tx *receivedPoolTx) toPoolL2TxWrite() *l2db.PoolL2TxWrite {
-	f := new(big.Float).SetInt((*big.Int)(&tx.Amount))
-	amountF, _ := f.Float64()
-	return &l2db.PoolL2TxWrite{
-		TxID:        tx.TxID,
-		FromIdx:     common.Idx(tx.FromIdx),
-		ToIdx:       (*common.Idx)(tx.ToIdx),
-		ToEthAddr:   (*ethCommon.Address)(tx.ToEthAddr),
-		ToBJJ:       (*babyjub.PublicKeyComp)(tx.ToBJJ),
-		TokenID:     tx.TokenID,
-		Amount:      (*big.Int)(&tx.Amount),
-		AmountFloat: amountF,
-		Fee:         tx.Fee,
-		Nonce:       tx.Nonce,
-		State:       common.PoolL2TxStatePending,
-		Signature:   tx.Signature,
-		RqFromIdx:   (*common.Idx)(tx.RqFromIdx),
-		RqToIdx:     (*common.Idx)(tx.RqToIdx),
-		RqToEthAddr: (*ethCommon.Address)(tx.RqToEthAddr),
-		RqToBJJ:     (*babyjub.PublicKeyComp)(tx.RqToBJJ),
-		RqTokenID:   tx.RqTokenID,
-		RqAmount:    (*big.Int)(tx.RqAmount),
-		RqFee:       tx.RqFee,
-		RqNonce:     tx.RqNonce,
-		Type:        tx.Type,
-	}
-}
-
-func (a *API) verifyPoolL2TxWrite(txw *l2db.PoolL2TxWrite) error {
+func (a *API) verifyPoolL2TxWrite(txw *apitypes.PoolL2Tx) error {
 	poolTx := common.PoolL2Tx{
 		TxID:    txw.TxID,
 		FromIdx: txw.FromIdx,

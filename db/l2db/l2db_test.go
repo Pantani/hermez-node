@@ -8,6 +8,7 @@ import (
 	"time"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/hermeznetwork/hermez-node/api/apitypes"
 	"github.com/hermeznetwork/hermez-node/common"
 	dbUtils "github.com/hermeznetwork/hermez-node/db"
 	"github.com/hermeznetwork/hermez-node/db/historydb"
@@ -189,14 +190,16 @@ func TestAddTxAPI(t *testing.T) {
 	l2DBWithACC.maxTxs = 5
 
 	poolL2Txs, err := generatePoolL2Txs()
-	txs := make([]*PoolL2TxWrite, len(poolL2Txs))
+	txs := make([]apitypes.PoolL2Tx, len(poolL2Txs))
 	for i := range poolL2Txs {
-		txs[i] = NewPoolL2TxWriteFromPoolL2Tx(&poolL2Txs[i])
+		insertTx, err := apitypes.NewPoolL2Tx(poolL2Txs[i], "TEST", "", "")
+		require.NoError(t, err)
+		txs[i] = insertTx
 	}
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(poolL2Txs), 8)
 	for i := range txs[:5] {
-		err := l2DBWithACC.AddTxAPI(txs[i])
+		err := l2DBWithACC.AddTxAPI(&txs[i])
 		require.NoError(t, err)
 		fetchedTx, err := l2DB.GetTx(poolL2Txs[i].TxID)
 		require.NoError(t, err)
@@ -205,7 +208,7 @@ func TestAddTxAPI(t *testing.T) {
 		assert.Equal(t, "UTC", nameZone)
 		assert.Equal(t, 0, offset)
 	}
-	err = l2DBWithACC.AddTxAPI(txs[5])
+	err = l2DBWithACC.AddTxAPI(&txs[5])
 	assert.Equal(t, errPoolFull, tracerr.Unwrap(err))
 	// reset maxTxs to original value
 	l2DBWithACC.maxTxs = oldMaxTxs
@@ -219,7 +222,7 @@ func TestAddTxAPI(t *testing.T) {
 	feeAmountUSD := common.TokensToUSD(feeAmount, decimals, tokenValue)
 	// set minFeeUSD higher than the tx fee to trigger the error
 	l2DBWithACC.minFeeUSD = feeAmountUSD + 1
-	err = l2DBWithACC.AddTxAPI(tx)
+	err = l2DBWithACC.AddTxAPI(&tx)
 	require.Error(t, err)
 	assert.Regexp(t, "tx.feeUSD (.*) < minFeeUSD (.*)", err.Error())
 	// reset minFeeUSD to original value

@@ -19,11 +19,11 @@ package l2db
 
 import (
 	"fmt"
-	"math/big"
 	"strconv"
 	"time"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/hermeznetwork/hermez-node/api/apitypes"
 	"github.com/hermeznetwork/hermez-node/common"
 	"github.com/hermeznetwork/hermez-node/db"
 	"github.com/hermeznetwork/tracerr"
@@ -147,56 +147,13 @@ func (l2db *L2DB) UpdateTxsInfo(txs []common.PoolL2Tx, batchNum common.BatchNum)
 	return nil
 }
 
-// NewPoolL2TxWriteFromPoolL2Tx creates a new PoolL2TxWrite from a PoolL2Tx
-func NewPoolL2TxWriteFromPoolL2Tx(tx *common.PoolL2Tx) *PoolL2TxWrite {
-	// transform tx from *common.PoolL2Tx to PoolL2TxWrite
-	insertTx := &PoolL2TxWrite{
-		TxID:      tx.TxID,
-		FromIdx:   tx.FromIdx,
-		TokenID:   tx.TokenID,
-		Amount:    tx.Amount,
-		Fee:       tx.Fee,
-		Nonce:     tx.Nonce,
-		State:     common.PoolL2TxStatePending,
-		Signature: tx.Signature,
-		RqAmount:  tx.RqAmount,
-		Type:      tx.Type,
-	}
-	if tx.ToIdx != 0 {
-		insertTx.ToIdx = &tx.ToIdx
-	}
-	nilAddr := ethCommon.BigToAddress(big.NewInt(0))
-	if tx.ToEthAddr != nilAddr {
-		insertTx.ToEthAddr = &tx.ToEthAddr
-	}
-	if tx.RqFromIdx != 0 {
-		insertTx.RqFromIdx = &tx.RqFromIdx
-	}
-	if tx.RqToIdx != 0 { // if true, all Rq... fields must be different to nil
-		insertTx.RqToIdx = &tx.RqToIdx
-		insertTx.RqTokenID = &tx.RqTokenID
-		insertTx.RqFee = &tx.RqFee
-		insertTx.RqNonce = &tx.RqNonce
-	}
-	if tx.RqToEthAddr != nilAddr {
-		insertTx.RqToEthAddr = &tx.RqToEthAddr
-	}
-	if tx.ToBJJ != common.EmptyBJJComp {
-		insertTx.ToBJJ = &tx.ToBJJ
-	}
-	if tx.RqToBJJ != common.EmptyBJJComp {
-		insertTx.RqToBJJ = &tx.RqToBJJ
-	}
-	f := new(big.Float).SetInt(tx.Amount)
-	amountF, _ := f.Float64()
-	insertTx.AmountFloat = amountF
-	return insertTx
-}
-
 // AddTxTest inserts a tx into the L2DB. This is useful for test purposes,
 // but in production txs will only be inserted through the API
 func (l2db *L2DB) AddTxTest(tx *common.PoolL2Tx) error {
-	insertTx := NewPoolL2TxWriteFromPoolL2Tx(tx)
+	insertTx, err := apitypes.NewPoolL2Tx(*tx, "TEST", "", "")
+	if err != nil {
+		return err
+	}
 	// insert tx
 	return tracerr.Wrap(meddler.Insert(l2db.dbWrite, "tx_pool", insertTx))
 }
